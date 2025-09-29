@@ -63,17 +63,20 @@ func main() {
 		return
 	}
 
+	fmt.Println("正在解压归档...")
 	files, err := untarGzToMemory(archive)
 	if err != nil {
 		fmt.Printf("解包归档失败: %v\n", err)
 		_ = pressAnyKey()
 		return
 	}
+	fmt.Printf("解压完成，共 %d 个条目。\n", len(files))
 
 	// 解析 meta.json
 	if m := findFile(files, "meta.json"); m != nil {
 		_ = json.Unmarshal(m.Data, &meta) // 宽松处理
 	}
+	fmt.Printf("产品: %s  版本: %s\n", meta.ProductName, meta.Version)
 
 	installDir, err := decideInstallDir(meta.ProductName, meta.InstallDir)
 	if err != nil {
@@ -81,19 +84,23 @@ func main() {
 		_ = pressAnyKey()
 		return
 	}
+	fmt.Printf("目标安装目录: %s\n", installDir)
 
 	// 在写入之前清理旧内容（保留目录本身），避免残留旧版本文件
+	fmt.Println("清理旧版本文件（若存在）...")
 	if err := cleanInstallDir(installDir); err != nil {
 		fmt.Printf("清理已有目录失败: %v\n", err)
 		_ = pressAnyKey()
 		return
 	}
+	fmt.Println("目录清理完成，开始写入文件...")
 
-	if err := writeFiles(files, installDir); err != nil {
+	if err := writeFilesWithLog(files, installDir); err != nil {
 		fmt.Printf("写文件失败: %v\n", err)
 		_ = pressAnyKey()
 		return
 	}
+	fmt.Println("文件写入完成。")
 
 	fmt.Printf("已安装到: %s\n", installDir)
 
@@ -111,12 +118,12 @@ func main() {
 		}
 	}
 
-	if runtime.GOOS == "windows" &&
-		(meta.CreateDesktopShortcut || meta.CreateStartMenuShortcut) {
+	if runtime.GOOS == "windows" && (meta.CreateDesktopShortcut || meta.CreateStartMenuShortcut) {
+		fmt.Println("开始创建快捷方式...")
 		if err := createShortcuts(exePath, installDir, meta); err != nil {
 			fmt.Printf("创建快捷方式失败（忽略）：%v\n", err)
 		} else {
-			fmt.Println("已创建快捷方式。")
+			fmt.Println("快捷方式创建完成。")
 		}
 	}
 
@@ -132,7 +139,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("安装完成。")
+	fmt.Println("安装完成，祝您使用愉快！")
 	_ = pressAnyKey()
 }
 
@@ -216,6 +223,32 @@ func writeFiles(files []*inMemoryFile, base string) error {
 		if err := os.WriteFile(dest, f.Data, mode); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func writeFilesWithLog(files []*inMemoryFile, base string) error {
+	for i, f := range files {
+		if strings.HasSuffix(f.Name, "/") {
+			dir := filepath.Join(base, strings.TrimSuffix(f.Name, "/"))
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return err
+			}
+			fmt.Printf("[%d/%d] 创建目录: %s\n", i+1, len(files), dir)
+			continue
+		}
+		dest := filepath.Join(base, f.Name)
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+			return err
+		}
+		mode := os.FileMode(f.Mode)
+		if mode == 0 {
+			mode = 0o644
+		}
+		if err := os.WriteFile(dest, f.Data, mode); err != nil {
+			return err
+		}
+		fmt.Printf("[%d/%d] 写入文件: %s (%d bytes)\n", i+1, len(files), dest, len(f.Data))
 	}
 	return nil
 }

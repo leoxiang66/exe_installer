@@ -38,10 +38,14 @@ func createShortcuts(targetExe, workingDir string, meta InstallMeta) error {
 	name = sanitizeFilename(name)
 
 	if meta.CreateDesktopShortcut {
+		fmt.Println(" - 正在创建桌面快捷方式...")
 		if p, err := desktopDir(); err == nil {
 			link := filepath.Join(p, name+".lnk")
 			if err2 := createShortcut(link, targetExe, workingDir, iconPath); err2 != nil {
 				errs = append(errs, "Desktop:"+err2.Error())
+				fmt.Printf("   × 桌面快捷方式失败: %v\n", err2)
+			} else {
+				fmt.Printf("   √ 桌面快捷方式: %s\n", link)
 			}
 		} else {
 			errs = append(errs, "DesktopDir:"+err.Error())
@@ -49,6 +53,7 @@ func createShortcuts(targetExe, workingDir string, meta InstallMeta) error {
 	}
 
 	if meta.CreateStartMenuShortcut {
+		fmt.Println(" - 正在创建开始菜单快捷方式...")
 		if p, err := startMenuDir(name); err == nil {
 			if err = os.MkdirAll(p, 0o755); err != nil {
 				errs = append(errs, "StartMenu mkdir:"+err.Error())
@@ -56,6 +61,9 @@ func createShortcuts(targetExe, workingDir string, meta InstallMeta) error {
 				link := filepath.Join(p, name+".lnk")
 				if err2 := createShortcut(link, targetExe, workingDir, iconPath); err2 != nil {
 					errs = append(errs, "StartMenu:"+err2.Error())
+					fmt.Printf("   × 开始菜单快捷方式失败: %v\n", err2)
+				} else {
+					fmt.Printf("   √ 开始菜单快捷方式: %s\n", link)
 				}
 			}
 		} else {
