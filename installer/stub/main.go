@@ -47,6 +47,11 @@ type inMemoryFile struct {
 }
 
 func main() {
+	if isUninstallMode() {
+		runUninstall()
+		return
+	}
+
 	fmt.Println("正在安装，请稍候...")
 
 	archive, err := extractSelf()
@@ -106,8 +111,11 @@ func main() {
 		}
 	}
 
-	// 写入注册表信息（仅 Windows 生效）
+	// 生成卸载程序并写入注册表（仅 Windows 生效）
 	if runtime.GOOS == "windows" {
+		if err := createUninstaller(installDir); err != nil {
+			fmt.Printf("创建卸载程序失败（忽略）：%v\n", err)
+		}
 		if err := writeRegistry(meta, installDir, exePath); err != nil {
 			fmt.Printf("写入注册表失败（忽略）：%v\n", err)
 		} else {

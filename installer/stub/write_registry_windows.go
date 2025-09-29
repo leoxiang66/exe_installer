@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -32,14 +34,19 @@ func writeRegistry(meta InstallMeta, installDir, exePath string) error {
 	}
 
 	uninstallPath := `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\` + meta.ProductName
-	uninstallString := exePath // 若未来有独立卸载器，可替换
+	uninstallExe := filepath.Join(installDir, "uninstall.exe")
+	if _, err := os.Stat(uninstallExe); err != nil {
+		// 如果尚未创建，尝试复制自身
+		_ = createUninstaller(installDir)
+	}
+	uninstallString := fmt.Sprintf("\"%s\"", uninstallExe)
 	if err := setValues(registry.CURRENT_USER, uninstallPath, map[string]any{
 		"DisplayName":          meta.ProductName,
 		"DisplayVersion":       meta.Version,
 		"InstallLocation":      installDir,
 		"Publisher":            "",
 		"UninstallString":      uninstallString,
-		"QuietUninstallString": uninstallString + " /S", // 预留
+		"QuietUninstallString": uninstallString + " /S",
 		"DisplayIcon":          exePath + ",0",
 		"NoModify":             uint32(1),
 		"NoRepair":             uint32(1),
@@ -73,3 +80,7 @@ func setValues(root registry.Key, path string, kv map[string]any) error {
 	}
 	return nil
 }
+
+// createUninstallScript 生成简单卸载脚本：删除注册表、快捷方式和安装目录。
+// 以下函数仅保留 sanitizePath 以防后续使用
+func sanitizePath(p string) string { return strings.Trim(p, "\"") }
