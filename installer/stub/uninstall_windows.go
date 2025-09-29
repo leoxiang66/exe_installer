@@ -55,12 +55,21 @@ func runUninstall() {
 	_ = registry.DeleteKey(registry.CURRENT_USER, uninstallKey)
 	_ = registry.DeleteKey(registry.CURRENT_USER, baseKey)
 
-	// 删除快捷方式
-	desktopLnk := filepath.Join(userDesktopDir(), productName+".lnk")
-	startMenuLnk := filepath.Join(startMenuProgramsDir(), productName, productName+".lnk")
-	os.Remove(desktopLnk)
-	os.Remove(startMenuLnk)
-	os.RemoveAll(filepath.Join(startMenuProgramsDir(), productName))
+	// 删除快捷方式（支持 ShortcutName）
+	shortcutName := productName
+	// 尝试读取基础键 ShortcutName
+	if k, err := registry.OpenKey(registry.CURRENT_USER, baseKey, registry.QUERY_VALUE); err == nil {
+		if v, _, err2 := k.GetStringValue("ShortcutName"); err2 == nil && v != "" {
+			shortcutName = v
+		}
+		k.Close()
+	}
+	desktopLnk := filepath.Join(userDesktopDir(), shortcutName+".lnk")
+	startMenuDirPath := filepath.Join(startMenuProgramsDir(), shortcutName)
+	startMenuLnk := filepath.Join(startMenuDirPath, shortcutName+".lnk")
+	_ = os.Remove(desktopLnk)
+	_ = os.Remove(startMenuLnk)
+	_ = os.RemoveAll(startMenuDirPath)
 
 	// 删除安装目录（延迟删除：因为自身仍在目录内，简单方案：提示手动删除或使用 cmd /c start 新进程延迟）
 	// 为简单起见：尝试直接删除除自身外的文件。

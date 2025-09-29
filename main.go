@@ -17,6 +17,7 @@ func main() {
 			CreateDesktopShortcut:   true,
 			CreateStartMenuShortcut: true,
 			Version:                 "1.0.0",
+			ShortcutName:            "悠米助手纯净版",
 		},
 	)
 	if err != nil {

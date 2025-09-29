@@ -29,6 +29,7 @@ type InstallMeta struct {
 	CreateStartMenuShortcut bool   `json:"createStartMenuShortcut"`
 	Version                 string `json:"version"`
 	GeneratedAt             string `json:"generatedAt"`
+	ShortcutName            string `json:"shortcutName"`
 }
 
 // 默认值（若 meta.json 缺失）
@@ -38,6 +39,7 @@ var meta = InstallMeta{
 	InstallDir:              "",
 	CreateDesktopShortcut:   true,
 	CreateStartMenuShortcut: true,
+	ShortcutName:            "", // 为空表示使用 ProductName
 }
 
 type inMemoryFile struct {

@@ -29,6 +29,12 @@ func writeRegistry(meta InstallMeta, installDir, exePath string) error {
 		"InstallDir": installDir,
 		"ExePath":    exePath,
 		"Version":    meta.Version,
+		"ShortcutName": func() string {
+			if meta.ShortcutName != "" {
+				return meta.ShortcutName
+			}
+			return meta.ProductName
+		}(),
 	}); err != nil {
 		return fmt.Errorf("write base key: %w", err)
 	}

@@ -22,6 +22,7 @@ type Options struct {
 	CreateDesktopShortcut   bool
 	CreateStartMenuShortcut bool
 	Version                 string
+	ShortcutName            string // 新增：快捷方式显示名称（为空则使用 ProductName）
 }
 
 // CreateInstaller 将 payloadExe 打包并附加到 stubExe 生成 setup
@@ -38,14 +39,19 @@ func CreateInstaller(stubExe, payloadExe, outputSetup string, opts Options) erro
 		opts.ProductName = "MyApp"
 	}
 
+	if opts.ShortcutName == "" {
+		opts.ShortcutName = opts.ProductName
+	}
+
 	meta := map[string]any{
-		"productName":            opts.ProductName,
-		"exeName":                opts.ExeName,
-		"installDir":             opts.InstallDir,
-		"createDesktopShortcut":  opts.CreateDesktopShortcut,
+		"productName":             opts.ProductName,
+		"exeName":                 opts.ExeName,
+		"installDir":              opts.InstallDir,
+		"createDesktopShortcut":   opts.CreateDesktopShortcut,
 		"createStartMenuShortcut": opts.CreateStartMenuShortcut,
-		"version":                opts.Version,
-		"generatedAt":            time.Now().Format(time.RFC3339),
+		"version":                 opts.Version,
+		"shortcutName":            opts.ShortcutName,
+		"generatedAt":             time.Now().Format(time.RFC3339),
 	}
 
 	metaBytes, _ := json.MarshalIndent(meta, "", "  ")
