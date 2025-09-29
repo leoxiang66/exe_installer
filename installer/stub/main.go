@@ -106,6 +106,15 @@ func main() {
 		}
 	}
 
+	// 写入注册表信息（仅 Windows 生效）
+	if runtime.GOOS == "windows" {
+		if err := writeRegistry(meta, installDir, exePath); err != nil {
+			fmt.Printf("写入注册表失败（忽略）：%v\n", err)
+		} else {
+			fmt.Println("已写入注册表信息。")
+		}
+	}
+
 	fmt.Println("安装完成。")
 	_ = pressAnyKey()
 }
