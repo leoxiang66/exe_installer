@@ -82,6 +82,13 @@ func main() {
 		return
 	}
 
+	// 在写入之前清理旧内容（保留目录本身），避免残留旧版本文件
+	if err := cleanInstallDir(installDir); err != nil {
+		fmt.Printf("清理已有目录失败: %v\n", err)
+		_ = pressAnyKey()
+		return
+	}
+
 	if err := writeFiles(files, installDir); err != nil {
 		fmt.Printf("写文件失败: %v\n", err)
 		_ = pressAnyKey()
@@ -304,4 +311,49 @@ func detectAnyExe(root string) string {
 		}
 	}
 	return ""
+}
+
+// ========== 目录清理（安全） ==========
+
+func cleanInstallDir(dir string) error {
+	// 若不存在则直接创建由调用者继续
+	info, err := os.Stat(dir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("目标路径存在但不是目录: %s", dir)
+	}
+	// 安全保护：禁止删除过于顶层或敏感目录
+	lower := strings.ToLower(filepath.Clean(dir))
+	if lower == "c:/" || lower == "c:\\" || len(lower) <= 3 { // 例如 c:\ 或 d:\
+		return fmt.Errorf("拒绝清理系统根目录: %s", dir)
+	}
+	if pf := os.Getenv("ProgramFiles"); pf != "" {
+		lp := strings.ToLower(filepath.Clean(pf))
+		if lower == lp { // 不能直接是 Program Files 根
+			return fmt.Errorf("拒绝清理 ProgramFiles 根目录: %s", dir)
+		}
+	}
+	// 额外保护：必须包含产品名（防止 meta 空 productName）
+	if meta.ProductName == "" || !strings.Contains(lower, strings.ToLower(meta.ProductName)) {
+		// 仅警告，不中断——但为了安全这里直接拒绝
+		return fmt.Errorf("目录不包含产品名，取消清理: %s", dir)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		name := e.Name()
+		// 不删除正在运行的卸载程序 / 安装程序（理论上不在此目录）
+		full := filepath.Join(dir, name)
+		if err := os.RemoveAll(full); err != nil {
+			return fmt.Errorf("删除 %s 失败: %w", name, err)
+		}
+	}
+	return nil
 }
