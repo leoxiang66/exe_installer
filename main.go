@@ -9,14 +9,14 @@ import (
 func main() {
 	err := installer.CreateInstaller(
 		"./stub.exe",
-		"./LOL-Yuumi-v070.exe",
-		"./setup.exe",
+		"./myproject.exe",
+		"./lol_yuumi_setup_v081.exe",
 		installer.Options{
 			ProductName:             "lolyuumi",
-			ExeName:                 "LOL-Yuumi-v070.exe", // 若你的真实文件名不同，改这里
+			ExeName:                 "myproject.exe", // 若你的真实文件名不同，改这里
 			CreateDesktopShortcut:   true,
 			CreateStartMenuShortcut: true,
-			Version:                 "1.0.0",
+			Version:                 "0.8.1",
 			ShortcutName:            "悠米助手纯净版",
 		},
 	)
